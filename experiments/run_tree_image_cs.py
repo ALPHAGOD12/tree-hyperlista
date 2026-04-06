@@ -68,8 +68,8 @@ def generate_wavelet_tree_sparse_data(tree_info, A, num_samples, target_K,
     Y = Y_clean + noise
 
     return {
-        'x': torch.from_numpy(X),
-        'y': torch.from_numpy(Y),
+        'x': torch.from_numpy(X).float(),
+        'y': torch.from_numpy(Y.astype(np.float32)).float(),
         'noise_std': sigma,
     }
 
