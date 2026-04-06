@@ -1,0 +1,31 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python env
+venv/
+.env/
+*.egg
+
+# Optuna
+*.db
+optuna-journal.log
+
+# Temp
+*.tmp
+*.log

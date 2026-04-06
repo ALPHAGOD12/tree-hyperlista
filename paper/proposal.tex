@@ -1,0 +1,51 @@
+\documentclass[11pt]{article}
+\usepackage[margin=0.85in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath, amssymb}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{hyperref}
+
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+
+\title{\vspace{-2.5em}\textbf{Project Proposal: Tree-HyperLISTA --- Ultra-Lightweight Deep Unfolding for Tree-Sparse Signal Recovery}\vspace{-1em}}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+\vspace{-2.5em}
+
+\textbf{Group Members:}
+\begin{itemize}[nosep, leftmargin=1.5em]
+    \item Shresth Verma \hfill Roll No: 22B2211
+    \item Aditya Agrawal \hfill Roll No: 22B0955
+\end{itemize}
+
+\textbf{Paper to Implement:}\\
+\textit{``Hyperparameter Tuning is All You Need for LISTA''} by Xiaohan Chen, Jialin Liu, Zhangyang Wang, and Wotao Yin. Published at \textbf{NeurIPS 2021}. [\href{https://arxiv.org/abs/2110.15900}{arXiv:2110.15900}]
+
+This paper proposes HyperLISTA, a deep unfolding network for sparse signal recovery ($\mathbf{y} = \mathbf{A}\mathbf{x} + \boldsymbol{\varepsilon}$) that reduces the learnable parameters of LISTA (millions) to just \textbf{3 global hyperparameters} $(c_1, c_2, c_3)$, from which all per-layer step sizes, thresholds, and momentum terms are derived via adaptive formulas. It achieves performance comparable to fully-learned LISTA while being far more robust to distribution shift. However, HyperLISTA uses elementwise soft-thresholding and is unaware of \emph{structured} sparsity patterns.
+
+\textbf{Proposed Extension:}\\
+We will extend HyperLISTA to \textbf{tree-structured sparsity}, where the signal's nonzero support must form a connected rooted subtree (e.g., wavelet coefficients of images). Our method, \textbf{Tree-HyperLISTA}, will replace the elementwise proximal operator with a tree-consistent operator comprising: (i)~bottom-up subtree scoring, (ii)~greedy tree-consistent support selection with ancestor closure, and (iii)~soft-thresholding within the selected support---while retaining only 3 hyperparameters. We will also implement baselines: Tree-ISTA/FISTA, Tree-IHT, Model-Based CoSaMP (Baraniuk et al., 2010), LISTA, and Tree-LISTA.
+
+\textbf{Datasets:}
+\begin{itemize}[nosep, leftmargin=1.5em]
+    \item \textbf{Synthetic tree-sparse data}: Balanced binary trees (depth 7--10, $n = 255$ to $1023$), Gaussian sensing matrices, $K$-tree-sparse signals at various SNR levels. Multiple random seeds for statistical robustness.
+    \item \textbf{Wavelet-domain image compressed sensing}: Standard Set11 test images, decomposed via 2D Haar wavelet transform. Wavelet coefficients naturally exhibit tree sparsity (coarse-to-fine parent-child structure). CS ratios: 10\%, 25\%, 50\%.
+\end{itemize}
+
+\textbf{Evaluation and Validation Strategy:}
+\begin{itemize}[nosep, leftmargin=1.5em]
+    \item \textbf{Reconstruction quality}: Normalized Mean Squared Error (NMSE in dB) for synthetic data; PSNR and SSIM for image experiments.
+    \item \textbf{Support recovery}: Node-level precision and recall to measure whether the correct tree support is identified.
+    \item \textbf{Convergence analysis}: NMSE vs.\ layer/iteration curves to verify that Tree-HyperLISTA converges faster than classical baselines and comparably to heavy-parameterized learned methods.
+    \item \textbf{Robustness / mismatch testing}: Evaluate all models on test distributions that differ from training (different SNR, sparsity level, perturbed sensing matrix) to validate generalization---a key claimed advantage of HyperLISTA-style methods.
+    \item \textbf{Ablation studies}: Sensitivity to each hyperparameter $c_1, c_2, c_3$; comparison of tree support selection mechanisms; effect of descendant decay weight $\rho$.
+    \item \textbf{Parameter efficiency}: Compare number of trainable parameters across all methods to demonstrate that 3 parameters with the right structural bias suffice.
+\end{itemize}
+
+\end{document}
