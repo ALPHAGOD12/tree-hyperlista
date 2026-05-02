@@ -25,8 +25,6 @@ from src.models.tree_baselines import TreeISTA, TreeFISTA
 from src.models.tree_classical import TreeIHT, TreeCoSaMP
 from src.models.hyperlista import HyperLISTA
 from src.models.alista import ALISTA
-from src.models.struct_hyperlista import StructHyperLISTA
-from src.models.ista import GroupFISTA
 from src.train import train_unfolded_model, tune_hyper_model
 from src.utils.metrics import nmse_db
 
@@ -36,7 +34,6 @@ LEVEL = 2
 K_LAYERS = 16
 TARGET_K = 60
 RHO = 0.5
-GS = 16  # group size for block baselines
 CS_RATIOS = [0.1, 0.25, 0.5]
 TRAIN_EPOCHS = 150
 N_TRIALS = 60
@@ -136,27 +133,6 @@ def build_tree_models_for_cs(A_np, tree_info, K_layers, target_K,
                           tr, va, n_trials=N_TRIALS, device=device)
     models['HyperLISTA'] = hl['model']
 
-    # --- Block baselines (Struct-HyperLISTA) ---
-    print("    Group-FISTA (block)")
-    best_lam_b, best_nmse_b = 0.1, float('inf')
-    for lam_try in [0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5]:
-        g = GroupFISTA(A_np, GS, lam=lam_try, max_iter=K_layers)
-        with torch.no_grad():
-            xh = g.solve(va['y'][:100])
-            v = nmse_db(xh, va['x'][:100])
-        if v < best_nmse_b:
-            best_nmse_b = v
-            best_lam_b = lam_try
-    models['Group-FISTA'] = GroupFISTA(A_np, GS, lam=best_lam_b, max_iter=K_layers)
-
-    print("    SH-topk (block)")
-    sh_topk = tune_hyper_model(
-        StructHyperLISTA,
-        {'A': A_np, 'group_size': GS, 'num_layers': K_layers,
-         'support_mode': 'topk_group'},
-        tr, va, n_trials=N_TRIALS, device=device)
-    models['SH-topk'] = sh_topk['model']
-
     # --- Tree-HyperLISTA (proposed) ---
     print("    TH-hybrid (tree, proposed)")
     th = tune_hyper_model(
@@ -227,7 +203,7 @@ def run_tree_image_cs(device='cpu'):
         print("\n  Running image CS experiment...")
         summary = image_cs_experiment(
             images, models, cs_ratio=cs_ratio, patch_size=PATCH_SIZE,
-            wavelet=WAVELET, level=LEVEL, group_size=GS,
+            wavelet=WAVELET, level=LEVEL,
             snr_db=40.0, device=device, seed=42)
 
         all_results[f'ratio_{cs_ratio}'] = summary
@@ -249,6 +225,6 @@ def run_tree_image_cs(device='cpu'):
 
 
 if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    from src.utils.sensing import pick_device; device = pick_device()
     print(f"Device: {device}")
     run_tree_image_cs(device=device)

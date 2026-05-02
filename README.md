@@ -1,36 +1,19 @@
-# Tree-HyperLISTA & Struct-HyperLISTA: Ultra-Lightweight Deep Unfolding for Structured Sparse Recovery
+# Tree-HyperLISTA: Ultra-Lightweight Deep Unfolding for Tree-Sparse Recovery
 
-This repository contains the code and paper for two complementary works on structured sparse recovery with minimal parameterization:
-
-1. **Struct-HyperLISTA** — Block-sparse recovery with 3 hyperparameters
-2. **Tree-HyperLISTA** — Tree-sparse recovery with 3 hyperparameters (extends Struct-HyperLISTA to hierarchical sparsity)
-
-Both methods replace elementwise thresholding in the HyperLISTA backbone with structure-aware proximal operators while retaining only **3 learned hyperparameters** `(c1, c2, c3)`.
+This repository extends **HyperLISTA** (NeurIPS 2021) to **tree-structured sparsity** with the same minimal parameterization: only **3 learned hyperparameters** `(c1, c2, c3)`.
 
 ## Key Idea
 
 > **Structural inductive bias in the proximal operator is far more powerful than heavy parameterization.**
 
-Instead of learning millions of weights (LISTA: 1.5M params) or even dozens (ALISTA: 32 params), we show that the right proximal operator — one that respects the signal's geometric structure — combined with just 3 adaptive hyperparameters is sufficient for state-of-the-art recovery.
+By replacing elementwise soft-thresholding in the HyperLISTA backbone with a tree-aware proximal operator, we achieve state-of-the-art recovery while retaining only 3 adaptive hyperparameters.
 
 ```
-Elementwise (HyperLISTA) → Block (Struct-HyperLISTA) → Tree (Tree-HyperLISTA)
-     3 params                    3 params                    3 params
+Elementwise (HyperLISTA) → Tree (Tree-HyperLISTA)
+     3 params                    3 params
 ```
 
 ## Results at a Glance
-
-### Struct-HyperLISTA (Block-Sparse Recovery)
-
-| Method | NMSE (dB) | #Params |
-|--------|-----------|---------|
-| Group-FISTA | -8.29 | 0 |
-| LISTA | -7.78 | 1,500,016 |
-| BlockLISTA | -16.34 | 1,500,400 |
-| ALISTA | -6.55 | 32 |
-| Ada-BLISTA-T | -14.50 | 31,666 |
-| HyperLISTA | -4.23 | 3 |
-| **SH-hybrid (ours)** | **-19.69** | **3** |
 
 ### Tree-HyperLISTA (Tree-Sparse Recovery)
 
@@ -46,26 +29,25 @@ Tree-HyperLISTA outperforms HyperLISTA by **15.3 dB** and LISTA by **14.0 dB** w
 
 ## Architecture
 
-Both models share the same backbone — a momentum-accelerated gradient step with an analytic weight matrix `W`:
+Momentum-accelerated gradient step with an analytic weight matrix `W`:
 
 ```
 For each layer k = 0, ..., K-1:
   1. Momentum:       z = x + β_k (x - x_prev)
   2. Gradient step:  u = z + W^T (y - A z)
-  3. Proximal:       x_new = Π(u; θ_k, p_k)    ← this is what changes
+  3. Proximal:       x_new = Π(u; θ_k, p_k)    ← tree-aware operator
 ```
 
-The 3 hyperparameters `(c1, c2, c3)` control all per-layer quantities via reparameterized adaptive formulas:
+The 3 hyperparameters `(c1, c2, c3)` control all per-layer quantities:
 - `c1 → θ_k` (threshold): scales with normalized residual ratio
 - `c2 → β_k` (momentum): bounded via sigmoid, scales with active fraction
 - `c3 → p_k` (support size): grows with layers via signal estimate + ramp
 
-### What differs: the proximal operator
+### Tree-Aware Proximal Operator
 
 | Model | Proximal Operator Π |
 |-------|-------------------|
 | HyperLISTA | Elementwise soft-thresholding |
-| Struct-HyperLISTA | Block soft-threshold / Top-k group / Hybrid |
 | Tree-HyperLISTA | Subtree scoring → Top-K tree projection with ancestor closure → Soft-threshold |
 
 ## Repository Structure
@@ -73,46 +55,40 @@ The 3 hyperparameters `(c1, c2, c3)` control all per-layer quantities via repara
 ```
 src/
   models/
-    ista.py                  - Group-ISTA / Group-FISTA (classical baselines)
-    lista.py                 - LISTA / BlockLISTA (learned baselines)
+    ista.py                  - ElementwiseISTA (baseline)
+    lista.py                 - LISTA (learned baseline)
     alista.py                - ALISTA (analytic weights, 32 params)
     hyperlista.py            - HyperLISTA (3 params, elementwise)
-    struct_hyperlista.py     - Struct-HyperLISTA (3 params, block-aware)
-    ada_blocklista.py        - Ada-BlockLISTA (31K/500K params)
     tree_hyperlista.py       - Tree-HyperLISTA (3 params, tree-aware)
+    tree_hyperlista_ss.py    - Self-supervised / amortized variants
+    diff_tree_hyperlista.py  - Differentiable tree proximal variant
     tree_baselines.py        - Tree-ISTA, Tree-FISTA, Tree-LISTA
     tree_classical.py        - Tree-IHT, Tree-CoSaMP (Baraniuk et al.)
   data/
-    synthetic.py             - Block-sparse data generation
     tree_synthetic.py        - Tree-sparse data generation
     wavelet_tree.py          - Wavelet coefficient tree builder
     image_cs.py              - Image CS pipeline (patches → DWT → sensing → recovery)
   utils/
-    proximal.py              - Block proximal operators
+    proximal.py              - Elementwise proximal operators
     tree_proximal.py         - Tree proximal operators (scoring, projection, thresholding)
+    diff_tree_proximal.py    - Differentiable tree proximal operators
     metrics.py               - NMSE, support precision/recall
     sensing.py               - Sensing matrix generation
   train.py                   - Training pipeline (backprop + Bayesian optimization)
-  evaluate.py                - Evaluation pipeline
 
 experiments/
-  run_core.py                - Core block-sparse experiments
-  run_mismatch.py            - Mismatch robustness experiments
-  run_ablation.py            - Ablation studies
-  run_image_cs.py            - Wavelet-domain image CS (block models)
-  run_tree_experiments.py    - Core tree-sparse experiments
+  run_tree_experiments.py    - Core tree-sparse experiments (+ mismatch + ablation)
   run_tree_image_cs.py       - Wavelet-domain image CS (tree models)
-  run_tree_scaled.py         - Scaled tree experiments
-  plot_results.py            - Generate figures for block-sparse paper
-  plot_tree_results.py       - Generate figures for tree-sparse paper
+  run_tree_scaled.py         - Scaled tree experiments (n=1023, n=4095)
+  run_diff_tree_cs.py        - Differentiable tree variant image CS
+  run_ss_image_cs.py         - Self-supervised variant image CS
+  plot_tree_results.py       - Generate figures for paper
 
 paper/
-  main.tex                   - Struct-HyperLISTA paper (NeurIPS format)
   tree_main.tex              - Tree-HyperLISTA paper
-  proposal.tex               - Project proposal
+  proposal.tex               - Project proposal (original HyperLISTA extension idea)
   references.bib             - Bibliography
-  figures/                   - Block-sparse paper figures
-  tree_figures/              - Tree-sparse paper figures
+  tree_figures/              - Paper figures
 
 results/                     - Experiment output (JSON)
 data/Set11/                  - Test images for image CS
@@ -126,34 +102,18 @@ data/Set11/                  - Test images for image CS
 pip install -r requirements.txt
 ```
 
-### Run All Block-Sparse Experiments
-
-```bash
-python experiments/run_core.py           # Core results (Table 1)
-python experiments/run_mismatch.py       # Mismatch robustness
-python experiments/run_ablation.py       # Ablation studies
-python experiments/run_image_cs.py       # Image CS experiments
-python experiments/plot_results.py       # Generate paper figures
-```
-
 ### Run All Tree-Sparse Experiments
 
 ```bash
 python experiments/run_tree_experiments.py   # Core + mismatch + ablation
 python experiments/run_tree_image_cs.py      # Wavelet-domain image CS
+python experiments/run_tree_scaled.py        # Scalability study
 python experiments/plot_tree_results.py      # Generate paper figures
 ```
 
-### Quick Run (Fast, Reduced Scale)
+### Compile Paper
 
 ```bash
-python experiments/run_all_fast.py       # All block experiments (reduced trials)
-```
-
-### Compile Papers
-
-```bash
-cd paper && pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
 cd paper && pdflatex tree_main.tex && bibtex tree_main && pdflatex tree_main.tex && pdflatex tree_main.tex
 ```
 
@@ -161,13 +121,13 @@ cd paper && pdflatex tree_main.tex && bibtex tree_main && pdflatex tree_main.tex
 
 ### Tree-Aware Scoring (Bottom-Up Aggregation)
 
-The key innovation in Tree-HyperLISTA is the subtree-aware scoring:
+The key innovation is subtree-aware scoring:
 
 ```
 s_i = |u_i| + ρ * Σ_{children j} s_j    (computed bottom-up in O(n))
 ```
 
-where `ρ ∈ (0,1)` is a fixed decay weight. This propagates information about "how active is this subtree" from leaves to root.
+where `ρ ∈ (0,1)` is a fixed decay weight. This propagates "how active is this subtree" from leaves to root.
 
 ### Tree-Consistent Support Selection
 
@@ -199,12 +159,6 @@ where `α = 3δ_{3K}/(1 - δ_{3K}) < 1`.
 If you use this code, please cite:
 
 ```bibtex
-@article{verma2025structhyperlista,
-  title={How Little Learning Is Needed for Structured Sparse Recovery?},
-  author={Verma, Shresth and Agrawal, Aditya},
-  year={2025}
-}
-
 @article{verma2025treehyperlista,
   title={Tree-HyperLISTA: Ultra-Lightweight Deep Unfolding for Tree-Sparse Recovery},
   author={Verma, Shresth and Agrawal, Aditya},
@@ -214,5 +168,5 @@ If you use this code, please cite:
 
 ## Authors
 
-**Shresth Verma** and **Aditya Agrawal**
+**Shresth Verma** and **Aditya Agrawal**  
 Department of Computer Science and Engineering, IIT Bombay

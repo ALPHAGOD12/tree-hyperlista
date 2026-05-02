@@ -1,0 +1,10 @@
+{
+  "ratio_0.25": {
+    "HyperLISTA": {
+      "psnr_mean": 18.06232904966673
+    },
+    "TH-hybrid": {
+      "psnr_mean": 18.06179975671026
+    }
+  }
+}

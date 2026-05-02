@@ -1,0 +1,22 @@
+{
+  "HyperLISTA": {
+    "elementwise": {
+      "nmse_db_mean": -3.1098350882530212,
+      "nmse_db_std": 0.0
+    },
+    "tree": {
+      "nmse_db_mean": -2.8095024824142456,
+      "nmse_db_std": 0.0
+    }
+  },
+  "Tree-HyperLISTA": {
+    "elementwise": {
+      "nmse_db_mean": -3.4504246711730957,
+      "nmse_db_std": 0.0
+    },
+    "tree": {
+      "nmse_db_mean": -2.7267903089523315,
+      "nmse_db_std": 0.0
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "TH-BP": {
+    "nmse_db_mean": -0.6435201317071915,
+    "nmse_db_std": 0.0,
+    "tune_time_mean": 1.514793872833252,
+    "tune_time_std": 0.0,
+    "n_evals_mean": 80.0
+  },
+  "TH-GS": {
+    "nmse_db_mean": -7.143382430076599,
+    "nmse_db_std": 0.0,
+    "tune_time_mean": 1.4471659660339355,
+    "tune_time_std": 0.0,
+    "n_evals_mean": 250.0
+  },
+  "TH-BO": {
+    "nmse_db_mean": -2.7267909049987793,
+    "nmse_db_std": 0.0,
+    "tune_time_mean": 1.2945232391357422,
+    "tune_time_std": 0.0,
+    "n_evals_mean": 5.0
+  }
+}

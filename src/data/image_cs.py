@@ -115,21 +115,12 @@ def vector_to_dwt2(vec: np.ndarray, slices, shape,
     return pywt.waverec2(coeffs, wavelet)[:patch_size, :patch_size]
 
 
-def compute_group_structure(shape: tuple, level: int = 2) -> int:
-    """Determine natural group size from wavelet subband structure."""
-    h, w = shape
-    min_dim = min(h, w) // (2 ** level)
-    group_size = max(min_dim, 4)
-    return group_size
-
-
 def image_cs_experiment(images: List[np.ndarray],
                         models: Dict,
                         cs_ratio: float = 0.25,
                         patch_size: int = 32,
                         wavelet: str = 'haar',
                         level: int = 2,
-                        group_size: int = 16,
                         snr_db: float = 40.0,
                         device: str = 'cpu',
                         seed: int = 42) -> Dict:
@@ -146,7 +137,7 @@ def image_cs_experiment(images: List[np.ndarray],
     n = coeff_arr.size
     coeff_shape = coeff_arr.shape
     m = int(n * cs_ratio)
-    print(f"  CS config: n={n}, m={m}, ratio={cs_ratio}, gs={group_size}")
+    print(f"  CS config: n={n}, m={m}, ratio={cs_ratio}")
 
     Phi = rng.randn(m, n).astype(np.float32) / np.sqrt(m)
     norms = np.linalg.norm(Phi, axis=0, keepdims=True)

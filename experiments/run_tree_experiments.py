@@ -359,6 +359,6 @@ def run_all(device='cpu'):
 
 
 if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    from src.utils.sensing import pick_device; device = pick_device()
     print(f"Device: {device}")
     run_all(device=device)

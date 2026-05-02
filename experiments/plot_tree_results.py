@@ -185,8 +185,7 @@ def fig9_image_cs(ics_data, out_dir):
     ics_colors = {
         'Tree-FISTA': '#666666', 'Tree-IHT': '#ff7f0e',
         'Tree-CoSaMP': '#17becf', 'ALISTA': '#1f77b4',
-        'HyperLISTA': '#d62728', 'Group-FISTA': '#888888',
-        'SH-topk': '#2ca02c',
+        'HyperLISTA': '#d62728',
         'TH-hard': '#9467bd', 'TH-hybrid': '#e377c2',
     }
 
@@ -207,7 +206,7 @@ def fig9_image_cs(ics_data, out_dir):
         ax.set_title(f'CS Ratio = {ratio_val}')
         ax.grid(True, alpha=0.3, axis='y')
 
-    fig.suptitle('Wavelet-Domain Image CS: Tree vs Block vs Elementwise',
+    fig.suptitle('Wavelet-Domain Image CS: Tree vs Elementwise',
                  fontsize=13, y=1.02)
     fig.tight_layout()
     fig.savefig(os.path.join(out_dir, 'tree_fig9_image_cs.pdf'))
@@ -239,6 +238,36 @@ def generate_all_figures(results_dir='results', out_dir='paper/tree_figures'):
         ics_data = load_json(ics_path)
         fig9_image_cs(ics_data, out_dir)
         print("Generated Fig 9 (image CS)")
+
+    # ------------------------------------------------------------------
+    # New figures from the Tree-HyperLISTA experiment suite.
+    # Each experiment runner is responsible for writing its own
+    # ``paper/tree_figures/tree_fig_*.{pdf,png}``; we re-use them via
+    # a consolidated copy step so they appear alongside Fig 1-9.
+    suite_figs = [
+        'tree_fig_backbone',          # Exp 1
+        'tree_fig_tuning',            # Exp 2
+        'tree_fig_mm_magnitude',      # Exp 3
+        'tree_fig_mm_sensing',
+        'tree_fig_mm_topology',
+        'tree_fig_mm_consistency',
+        'tree_fig_extrapolation',     # Exp 4
+        'tree_fig_superlinear',       # Exp 5
+        'tree_fig_bsd500_dict',       # Exp 6 (optional)
+        'tree_fig_cross',             # Exp 7
+        'tree_fig_sparsity',          # Exp 8
+        'tree_fig_mechanisms_ext',    # Exp 9 (extended)
+        'tree_fig_rho_dense',         # Exp 10 (dense)
+        'tree_fig_tune_time',         # Exp 11 (tuning time)
+        'tree_fig_lowsnr',            # Exp 12
+    ]
+    missing = [f for f in suite_figs
+               if not os.path.exists(os.path.join(out_dir, f + '.pdf'))]
+    if missing:
+        print(f"[note] {len(missing)} suite figures not yet generated "
+              f"(run the corresponding experiment):\n  " + "\n  ".join(missing))
+    else:
+        print("All Tree-HyperLISTA suite figures are present.")
 
 
 if __name__ == '__main__':

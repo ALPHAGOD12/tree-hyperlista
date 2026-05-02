@@ -1,0 +1,22 @@
+{
+  "tree_hard": {
+    "nmse_db_mean": -3.624023199081421,
+    "nmse_db_std": 0.0
+  },
+  "tree_threshold": {
+    "nmse_db_mean": -2.726070284843445,
+    "nmse_db_std": 0.0
+  },
+  "hybrid_tree": {
+    "nmse_db_mean": -2.7267909049987793,
+    "nmse_db_std": 0.0
+  },
+  "diff_ancestor": {
+    "nmse_db_mean": -3.124755620956421,
+    "nmse_db_std": 0.0
+  },
+  "gumbel_topk": {
+    "nmse_db_mean": -2.7267909049987793,
+    "nmse_db_std": 0.0
+  }
+}

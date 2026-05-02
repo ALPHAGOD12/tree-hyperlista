@@ -113,25 +113,23 @@ def compute_mutual_coherence(A: np.ndarray) -> float:
     return np.max(np.abs(G))
 
 
-def compute_block_coherence(A: np.ndarray, group_size: int) -> float:
-    """Block mutual coherence for group-sparse recovery (vectorized)."""
-    m, n = A.shape
-    num_groups = n // group_size
-    A_blocks = A[:, :num_groups * group_size].reshape(m, num_groups, group_size)
-    max_coh = 0.0
-    for i in range(num_groups):
-        Ai = A_blocks[:, i, :]
-        cross = np.einsum('mi,mjk->jk', Ai, A_blocks[:, i+1:, :])
-        if cross.size > 0:
-            for j_offset in range(cross.shape[0]):
-                coh = np.linalg.norm(cross[j_offset], ord=2)
-                max_coh = max(max_coh, coh)
-    return max_coh
+def pick_device() -> str:
+    """Return 'cuda' > 'mps' > 'cpu' based on availability.
+
+    Apple Silicon (MPS) is preferred on macOS hosts without CUDA; falls
+    back to CPU when neither is available.
+    """
+    if torch.cuda.is_available():
+        return 'cuda'
+    if getattr(torch.backends, 'mps', None) is not None \
+            and torch.backends.mps.is_available():
+        return 'mps'
+    return 'cpu'
 
 
 def compute_symmetric_W_gpu(A_tensor: torch.Tensor, num_iter: int = 200,
                             lr: float = 0.002) -> torch.Tensor:
-    """GPU-accelerated symmetric W computation for HyperLISTA/Struct-HyperLISTA."""
+    """GPU-accelerated symmetric W computation for HyperLISTA."""
     device = A_tensor.device
     m, n = A_tensor.shape
     norms = A_tensor.norm(dim=0, keepdim=True).clamp(min=1e-12)
@@ -148,23 +146,3 @@ def compute_symmetric_W_gpu(A_tensor: torch.Tensor, num_iter: int = 200,
     G = torch.linalg.lstsq(A_tensor, D).solution
     W = A_tensor @ G
     return W
-
-
-def compute_block_coherence_fast(A_tensor: torch.Tensor, group_size: int) -> float:
-    """GPU-accelerated block coherence via batched matmul."""
-    device = A_tensor.device
-    m, n = A_tensor.shape
-    num_groups = n // group_size
-    A_blocks = A_tensor[:, :num_groups * group_size].reshape(m, num_groups, group_size)
-    A_blocks_t = A_blocks.permute(1, 2, 0)
-    gram = torch.bmm(A_blocks_t, A_blocks.permute(1, 0, 2).expand(num_groups, m, group_size))
-
-    max_coh = 0.0
-    for i in range(num_groups):
-        Ai = A_blocks[:, i, :]
-        for j in range(i + 1, num_groups):
-            Aj = A_blocks[:, j, :]
-            cross = Ai.t() @ Aj
-            coh = torch.linalg.norm(cross, ord=2).item()
-            max_coh = max(max_coh, coh)
-    return max_coh

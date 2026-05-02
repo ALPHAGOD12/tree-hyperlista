@@ -30,6 +30,8 @@ RHO = 0.5
 SCALE_CONFIGS = [
     {'depth': 7, 'branching': 2, 'n': 255, 'm_ratio': 0.5, 'target_K': 30},
     {'depth': 9, 'branching': 2, 'n': 1023, 'm_ratio': 0.4, 'target_K': 80},
+    {'depth': 11, 'branching': 2, 'n': 4095, 'm_ratio': 0.3, 'target_K': 160},
+    {'depth': 13, 'branching': 2, 'n': 16383, 'm_ratio': 0.2, 'target_K': 320},
 ]
 
 
@@ -196,6 +198,6 @@ def run_all_scales(device='cpu'):
 
 
 if __name__ == '__main__':
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    from src.utils.sensing import pick_device; device = pick_device()
     print(f"Device: {device}")
     run_all_scales(device=device)

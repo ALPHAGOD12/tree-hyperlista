@@ -200,6 +200,134 @@ class TreeSparseDataset:
         }
 
 
+def generate_topology_mismatched(tree_info_train: Dict, tree_info_test: Dict,
+                                 A: np.ndarray, num_samples: int,
+                                 target_K: int, snr_db: float,
+                                 amplitude_range: tuple = (0.5, 2.0),
+                                 seed: int = 999) -> Dict[str, torch.Tensor]:
+    """Generate signals that are tree-sparse on ``tree_info_test`` while a
+    recovery model still assumes ``tree_info_train``.
+
+    The two trees must have the same node count ``n``; the parent/leaf
+    structure differs. Returned dict matches the format of
+    ``TreeSparseDataset.generate``.
+    """
+    n_train = tree_info_train['n']
+    n_test = tree_info_test['n']
+    assert n_train == n_test, (
+        f"Topology mismatch requires same n, got {n_train} vs {n_test}")
+
+    rng = np.random.RandomState(seed)
+    n = n_train
+    m = A.shape[0]
+
+    X = np.zeros((num_samples, n), dtype=np.float32)
+    for i in range(num_samples):
+        support = generate_tree_support(tree_info_test, target_K, rng)
+        active = np.where(support)[0]
+        vals = rng.randn(len(active)).astype(np.float32)
+        signs = np.sign(vals)
+        mags = np.abs(vals)
+        lo, hi = amplitude_range
+        mags = mags * (hi - lo) + lo
+        X[i, active] = signs * mags
+
+    Y_clean = X @ A.T
+    sigma = np.sqrt(np.mean(Y_clean ** 2) * 10 ** (-snr_db / 10.0))
+    noise = rng.randn(num_samples, m).astype(np.float32) * sigma
+    Y = Y_clean + noise
+    return {
+        'x': torch.from_numpy(X),
+        'y': torch.from_numpy(Y.astype(np.float32)),
+        'noise_std': sigma,
+    }
+
+
+def generate_consistency_violated(tree_info: Dict, A: np.ndarray,
+                                  num_samples: int, target_K: int,
+                                  snr_db: float, violation_frac: float,
+                                  amplitude_range: tuple = (0.5, 2.0),
+                                  seed: int = 999) -> Dict[str, torch.Tensor]:
+    """Generate signals where a fraction of active nodes break parent-before-child.
+
+    Strategy: draw a tree-consistent support of size ``K``. Then, with
+    probability ``violation_frac``, replace each active non-root node by
+    a random *inactive* node (which may not have an active parent). The
+    resulting support has the same cardinality but is not tree-consistent
+    for ``violation_frac > 0``.
+    """
+    rng = np.random.RandomState(seed)
+    n = tree_info['n']
+    m = A.shape[0]
+
+    X = np.zeros((num_samples, n), dtype=np.float32)
+    for i in range(num_samples):
+        support = generate_tree_support(tree_info, target_K, rng)
+        active = list(np.where(support)[0])
+        inactive = list(np.where(~support)[0])
+
+        if violation_frac > 0 and len(inactive) > 0:
+            n_flip = int(round(violation_frac * len(active)))
+            if n_flip > 0:
+                flip_ids = rng.choice(len(active), size=n_flip, replace=False)
+                picks = rng.choice(inactive, size=n_flip, replace=False)
+                for fi, p in zip(flip_ids, picks):
+                    active[fi] = int(p)
+
+        active = np.array(list(set(active)), dtype=np.int64)
+        vals = rng.randn(len(active)).astype(np.float32)
+        signs = np.sign(vals)
+        mags = np.abs(vals)
+        lo, hi = amplitude_range
+        mags = mags * (hi - lo) + lo
+        X[i, active] = signs * mags
+
+    Y_clean = X @ A.T
+    sigma = np.sqrt(np.mean(Y_clean ** 2) * 10 ** (-snr_db / 10.0))
+    noise = rng.randn(num_samples, m).astype(np.float32) * sigma
+    Y = Y_clean + noise
+    return {
+        'x': torch.from_numpy(X),
+        'y': torch.from_numpy(Y.astype(np.float32)),
+        'noise_std': sigma,
+    }
+
+
+def build_shuffled_tree(tree_info: Dict, seed: int = 0) -> Dict[str, Any]:
+    """Return a tree with the same n but randomly permuted non-root parents.
+
+    Produces a topology that has the same node count but different
+    parent/child relationships, ensuring we can test a model's sensitivity
+    to tree topology mismatch on identical ``A`` and identical ``n``.
+    """
+    rng = np.random.RandomState(seed)
+    n = tree_info['n']
+    parent = np.full(n, -1, dtype=np.int64)
+    parent[0] = -1
+    for i in range(1, n):
+        parent[i] = rng.randint(0, i)
+
+    children = [[] for _ in range(n)]
+    depth_arr = np.zeros(n, dtype=np.int64)
+    for i in range(1, n):
+        children[parent[i]].append(i)
+        depth_arr[i] = depth_arr[parent[i]] + 1
+
+    descendants = [set() for _ in range(n)]
+    for i in range(n - 1, -1, -1):
+        for c in children[i]:
+            descendants[i].add(c)
+            descendants[i].update(descendants[c])
+    leaves = [i for i in range(n) if len(children[i]) == 0]
+
+    return {
+        'n': n, 'parent': parent, 'children': children,
+        'depth': depth_arr, 'descendants': descendants,
+        'leaves': leaves, 'max_depth': int(depth_arr.max()),
+        'branching': tree_info.get('branching', 2),
+    }
+
+
 def get_tree_default_config() -> Dict[str, Any]:
     """Default experimental configuration for tree-sparse recovery."""
     return {
