@@ -78,11 +78,15 @@ where $\mathbf{W}$ is a precomputed symmetric weight matrix (not learned) and $\
 
 \subsection{Tree-Aware Scoring}
 
-Instead of treating coefficients independently, we compute a subtree-aware score for each node that aggregates information from its descendants:
+Instead of treating coefficients independently, we compute a subtree-aware score for each node that aggregates information from its descendants. The score for node $i$ at layer $k$ is:
 \begin{equation}
-    s_i^{(k)} = |u_i^{(k)}| + \rho \sum_{j \in \mathrm{child}(i)} |u_j^{(k)}| + \rho^2 \sum_{j \in \mathrm{desc}(i)} \rho^{\mathrm{depth}(j)-\mathrm{depth}(i)-2} |u_j^{(k)}| \label{eq:score}
+    s_i^{(k)} = |u_i^{(k)}| + \sum_{j \in \mathrm{desc}(i)} \rho^{\,\mathrm{depth}(j) - \mathrm{depth}(i)} \cdot |u_j^{(k)}| \label{eq:score}
 \end{equation}
-where $\rho \in (0,1)$ is a fixed decay weight controlling the influence of descendants. This is computed efficiently via bottom-up aggregation in $O(n)$ time. The recursive form is simply: $s_i = |u_i| + \rho \sum_{j \in \mathrm{child}(i)} s_j$.
+where $\rho \in (0,1)$ is a fixed decay weight (we use $\rho = 0.5$) and $\mathrm{desc}(i)$ denotes all descendants of $i$ in $\mathcal{T}$. The exponent $\mathrm{depth}(j) - \mathrm{depth}(i)$ is simply the distance from node $i$ to descendant $j$ in the tree: children get weight $\rho$, grandchildren $\rho^2$, and so on. This is computed efficiently via bottom-up aggregation in $O(n)$ time using the equivalent recursive form:
+\begin{equation}
+    s_i = |u_i| + \rho \sum_{j \in \mathrm{child}(i)} s_j \label{eq:score_recursive}
+\end{equation}
+Processing nodes from leaves to root, each node accumulates its children's already-computed scores, so the entire tree is scored in a single pass. The decay $\rho$ controls how far the operator ``looks ahead'': at $\rho = 0.5$, a child contributes half as much as the node itself, a grandchild one-quarter, etc. This enables the support selection (next step) to prefer nodes whose entire subtree is active, naturally respecting the tree-consistency constraint.
 
 \subsection{Tree-Consistent Support Selection}
 
