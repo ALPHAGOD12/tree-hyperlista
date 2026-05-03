@@ -13,6 +13,7 @@
 \usepackage{algorithmic}
 \usepackage{microtype}
 \usepackage{amsthm}
+\usepackage{float}
 \newtheorem{theorem}{Theorem}
 \newtheorem{definition}{Definition}
 
@@ -127,7 +128,7 @@ where $r_k = \|\mathbf{A}^\dagger \mathbf{y}\|_1 \big/ \|\mathbf{A}^\dagger(\mat
 
 \textbf{How $(c_1, c_2, c_3)$ are tuned.} Since there are only 3 scalar values, backpropagation through $K$ unrolled layers is unnecessary. Following \cite{chen2021hyperlista}, we use Bayesian optimization (80 Optuna TPE trials) on a validation set, minimizing NMSE. The search ranges are $c_1 \in [0.01, 10]$ (log-scale), $c_2 \in [-8, 3]$ (linear), $c_3 \in [0.05, 10]$ (log-scale). This takes $<2$ seconds on CPU. Once tuned, the same $(c_1, c_2, c_3)$ are used for all test instances.
 
-\begin{algorithm}[t]
+\begin{algorithm}[H]
 \caption{Tree-HyperLISTA (Hybrid Mode)}
 \label{alg:tree_hyperlista}
 \begin{algorithmic}[1]
@@ -170,7 +171,7 @@ We use a balanced binary tree of depth 7 ($n = 255$ nodes) with $m = 127$ Gaussi
 
 \subsection{Core Results}
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
     \caption{Tree-sparse recovery results ($n{=}255$, $m{=}127$, $K{=}16$, 30 dB SNR, 5 seeds).}
 \label{tab:core}
@@ -203,14 +204,14 @@ Notably, Tree-HyperLISTA closes the gap to classical tree-CoSaMP (which has acce
 
 Both tree-hard (M1) and hybrid (M3) modes achieve \textbf{perfect recall} (1.000), meaning the true tree support is always recovered. The threshold mode (M2) is unstable (std 7.29 dB), likely because the threshold $\tau_k$ must be precisely calibrated---a known difficulty with threshold-based methods.
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{tree_figures/tree_fig1_convergence.pdf}
     \caption{Convergence curves: NMSE (dB) vs.\ layer/iteration. Tree-HyperLISTA (hybrid) converges to $-28.66$ dB within 16 layers.}
     \label{fig:convergence}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{tree_figures/tree_fig2_support.pdf}
     \caption{Node-level support precision (left) and recall (right) across layers.}
@@ -221,7 +222,7 @@ Both tree-hard (M1) and hybrid (M3) modes achieve \textbf{perfect recall} (1.000
 
 We evaluate robustness under distribution shift along three axes: SNR mismatch, sparsity mismatch, and operator perturbation. Figures~\ref{fig:snr}--\ref{fig:operator} show that Tree-HyperLISTA maintains strong performance across all mismatch regimes, degrading gracefully while consistently outperforming baselines.
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.48\textwidth]{tree_figures/tree_fig3_snr_db.pdf}
     \hfill
@@ -230,7 +231,7 @@ We evaluate robustness under distribution shift along three axes: SNR mismatch, 
     \label{fig:snr}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.48\textwidth]{tree_figures/tree_fig5_operator_delta.pdf}
     \hfill
@@ -247,7 +248,7 @@ We evaluate robustness under distribution shift along three axes: SNR mismatch, 
 
 \textbf{Sensitivity to hyperparameters.} Figure~\ref{fig:sensitivity} shows NMSE as each of $c_1, c_2, c_3$ is varied while holding the others at their tuned values. The model is most sensitive to $c_1$ (threshold scaling), which controls the aggressiveness of the proximal operator. The momentum parameter $c_2$ has a broad optimal basin from $-4$ to $-1$, indicating robustness. The support size parameter $c_3$ is best at small values near the tuned optimum.
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{tree_figures/tree_fig6_sensitivity.pdf}
     \caption{Sensitivity of Tree-HyperLISTA (hybrid) to hyperparameters $c_1$, $c_2$, $c_3$.}
@@ -260,7 +261,7 @@ To validate Tree-HyperLISTA on real data, we evaluate on wavelet-domain image co
 
 A random Gaussian sensing matrix $\mathbf{A} \in \mathbb{R}^{m \times 1024}$ is applied at CS ratios 10\%, 25\%, and 50\%. Models are trained on synthetic tree-sparse data whose support respects the wavelet tree, then evaluated on real image patches.
 
-\begin{table}[t]
+\begin{table}[H]
 \centering
 \caption{Wavelet-domain image CS results (PSNR dB / SSIM) on 8 test images. Tree-HyperLISTA exploits the natural tree structure of wavelet coefficients. TH = Tree-HyperLISTA.}
 \label{tab:tree_imagecs}
@@ -289,7 +290,7 @@ TH-hard (3p)      & 8.15  & 0.277 & 19.03 & 0.774 & 31.58 & 0.932 \\
 
 Table~\ref{tab:tree_imagecs} shows the image CS results. TH-hybrid (3 params) achieves the \textbf{best SSIM at all three CS ratios} (0.707, 0.834, 0.952) and the best PSNR among all 3-parameter methods. At 50\%, TH-hybrid reaches $31.66$ dB / 0.952 SSIM, surpassing all classical baselines and HyperLISTA (21.56 dB) by over 10 dB, and approaching ALISTA (35.18 dB, 32 params) while using $10\times$ fewer parameters. The consistent SSIM advantage demonstrates that tree-aware recovery preserves perceptually important structure in wavelet-domain signals.
 
-\begin{figure}[t]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.95\textwidth]{tree_figures/tree_fig9_image_cs.pdf}
     \caption{Wavelet-domain image CS: PSNR (left) and SSIM (right) across CS ratios. TH-hybrid achieves the best SSIM at all ratios and best PSNR among 3-parameter methods.}
@@ -309,9 +310,6 @@ We presented Tree-HyperLISTA, an ultra-lightweight deep unfolding network for tr
 \textbf{Limitations.} Tree-LISTA performed poorly ($-5.32$ dB) despite 1.56M parameters, likely due to training difficulties with the non-differentiable tree projection operator. The threshold mode (M2) is unstable. Tree-HyperLISTA is designed for the fixed training-depth setting; layer-count extrapolation is a direction for future work.
 
 \textbf{Future work.} Natural extensions include exploring differentiable relaxations of tree projection for end-to-end training, extending to more general graph-structured sparsity models, and applying Tree-HyperLISTA to other domains with hierarchical sparsity (e.g., genomics, multi-resolution analysis).
-
-\bibliography{references}
-\bibliographystyle{plainnat}
 
 \appendix
 \section{Proof of Theorem 1}
@@ -343,7 +341,7 @@ Combining these steps and using the tree-RIP condition $\delta_{3K} < 1/3$, we o
 
 Table~\ref{tab:backbone} compares different backbone variants for the tree-aware proximal operator. Tree-ALISTA uses per-layer step sizes; Tree-ALISTA-MM adds momentum; the -Sym variants enforce symmetric weight matrices; Tree-HyperLISTA-Elem uses the full Tree-HyperLISTA backbone with elementwise thresholding (no tree structure).
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \caption{Backbone ablation: final NMSE (dB) at 16 layers on the core synthetic benchmark.}
 \label{tab:backbone}
@@ -363,7 +361,7 @@ Tree-HyperLISTA-Elem   & $-15.75 \pm 7.06$ & 3 \\
 
 The results show that the momentum-accelerated HyperLISTA backbone combined with tree-aware thresholding is critical. The symmetric + momentum variant (Tree-ALISTA-MM-Sym) diverges badly, confirming that the symmetric constraint is incompatible with momentum in this setting.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{tree_figures/tree_fig_backbone.pdf}
     \caption{Convergence trajectories for backbone ablation variants.}
@@ -375,7 +373,7 @@ The results show that the momentum-accelerated HyperLISTA backbone combined with
 
 Table~\ref{tab:mech_ext} extends the mechanism comparison to include differentiable relaxations.
 
-\begin{table}[h]
+\begin{table}[H]
 \centering
 \caption{Extended mechanism ablation on the core benchmark.}
 \label{tab:mech_ext}
@@ -392,7 +390,7 @@ Gumbel Top-$K$      & $-2.73$ \\
 \end{tabular}
 \end{table}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{tree_figures/tree_fig_mechanisms_ext.pdf}
     \caption{Extended mechanism comparison including differentiable relaxations.}
@@ -402,7 +400,7 @@ Gumbel Top-$K$      & $-2.73$ \\
 \section{Effect of $\rho$ on Dense Signals}
 \label{app:rho_dense}
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.55\textwidth]{tree_figures/tree_fig_rho_dense.pdf}
     \caption{Effect of decay parameter $\rho$ on denser signal regimes ($\rho{=}0.1$: $-2.73$ dB; $\rho{=}0.5$: $-2.73$ dB).}
@@ -414,7 +412,7 @@ Gumbel Top-$K$      & $-2.73$ \\
 
 Figure~\ref{fig:sparsity} shows performance when the test-time sparsity ratio differs from training (ratio $= 1.0$). At ratio $0.5$ (sparser than expected), TH-hard achieves $-19.1$ dB and Tree-CoSaMP achieves $-22.2$ dB. At ratio $1.5$ (denser), all methods degrade similarly, suggesting sparsity overshoot is a universal challenge.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{tree_figures/tree_fig_sparsity.pdf}
     \caption{Sparsity mismatch: NMSE vs.\ sparsity ratio at test time (training ratio $= 1.0$).}
@@ -434,7 +432,7 @@ We evaluate mismatch along four additional axes: coefficient magnitude scaling, 
 
 \textbf{Tree consistency fraction.} As the fraction of tree-inconsistent training examples increases from 0 to 0.5, TH-hybrid degrades from $-28.8$ dB to $-7.2$ dB, confirming that tree structure in the data is necessary for the tree-aware proximal to be effective.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=\textwidth]{tree_figures/tree_fig_mm_magnitude.pdf}
     \vspace{0.5em}
@@ -452,7 +450,7 @@ We evaluate mismatch along four additional axes: coefficient magnitude scaling, 
 
 Figure~\ref{fig:lowsnr} shows performance at SNR $\in \{10, 20, 30\}$ dB. TH-hybrid maintains its advantage at all SNR levels: $-3.06$ dB at 10 dB SNR, $-3.86$ dB at 20 dB, and $-3.99$ dB at 30 dB. Tree-CoSaMP benefits most from higher SNR ($-1.86 \to -9.20$ dB), while HyperLISTA plateaus early.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.65\textwidth]{tree_figures/tree_fig_lowsnr.pdf}
     \caption{NMSE vs.\ SNR (dB) for Tree-HyperLISTA and baselines.}
@@ -464,7 +462,7 @@ Figure~\ref{fig:lowsnr} shows performance at SNR $\in \{10, 20, 30\}$ dB. TH-hyb
 
 Figure~\ref{fig:superlinear} shows that the per-instance tuned Tree-HyperLISTA (hyperparameters tuned to each test instance) achieves $-4.0$ dB at 6 layers, outperforming the globally-tuned variant ($-3.3$ dB). The gap motivates future work on instance-adaptive hyperparameter schedules.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.65\textwidth]{tree_figures/tree_fig_superlinear.pdf}
     \caption{Superlinear convergence: global vs.\ per-instance and CG-switch variants.}
@@ -476,12 +474,15 @@ Figure~\ref{fig:superlinear} shows that the per-instance tuned Tree-HyperLISTA (
 
 Figure~\ref{fig:cross} evaluates Tree-HyperLISTA (trained on tree-sparse signals) vs.\ HyperLISTA (elementwise) on two sensing matrix types for both elementwise and tree-structured test signals. TH-hybrid achieves $-3.45$ dB on elementwise test data and $-2.73$ dB on tree-structured data, showing that tree-aware structure does not significantly hurt performance on non-tree signals.
 
-\begin{figure}[h]
+\begin{figure}[H]
     \centering
     \includegraphics[width=0.7\textwidth]{tree_figures/tree_fig_cross.pdf}
     \caption{Cross-structure evaluation: tree-aware vs.\ elementwise models on both signal types.}
     \label{fig:cross}
 \end{figure}
 
+
+\bibliography{references}
+\bibliographystyle{plainnat}
 
 \end{document}
