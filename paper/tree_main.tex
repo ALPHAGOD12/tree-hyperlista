@@ -34,9 +34,9 @@ Tree-structured sparsity arises naturally in wavelet decompositions and hierarch
 
 \section{Introduction}
 
-Sparse recovery---reconstructing a high-dimensional signal $\mathbf{x} \in \mathbb{R}^n$ from compressed measurements $\mathbf{y} = \mathbf{A}\mathbf{x} + \boldsymbol{\varepsilon}$---is a foundational problem in compressed sensing \cite{candes2006robust, donoho2006compressed}. Classical methods like ISTA and FISTA solve this via iterative proximal gradient descent, while deep unfolding approaches (LISTA \cite{gregor2010learning}, ALISTA \cite{liu2019alista}, HyperLISTA \cite{chen2021hyperlista}) learn parameters of the unfolded iterations to accelerate convergence.
+Sparse recovery---reconstructing a high-dimensional signal $\mathbf{x} \in \mathbb{R}^n$ from compressed measurements $\mathbf{y} = \mathbf{A}\mathbf{x} + \boldsymbol{\varepsilon}$---is a foundational problem in compressed sensing \cite{candes2006rip, donoho2006compressed}. Classical methods like ISTA and FISTA solve this via iterative proximal gradient descent, while deep unfolding approaches (LISTA \cite{gregor2010lista}, ALISTA \cite{liu2019alista}, HyperLISTA \cite{chen2021hyperlista}) learn parameters of the unfolded iterations to accelerate convergence.
 
-A key insight from recent work is that structured sparsity models---where the support of $\mathbf{x}$ obeys geometric constraints---can be exploited to dramatically improve recovery. Block sparsity, where nonzero coefficients cluster in contiguous groups, has been studied extensively \cite{eldar2010block, yuan2006model}. However, many real-world signals exhibit \emph{tree-structured} sparsity: in wavelet decompositions of natural images, if a fine-scale coefficient is significant, its parent (coarser-scale) coefficient is typically also significant \cite{baraniuk2010model, he2011tree}.
+A key insight from recent work is that structured sparsity models---where the support of $\mathbf{x}$ obeys geometric constraints---can be exploited to dramatically improve recovery. Block sparsity, where nonzero coefficients cluster in contiguous groups, has been studied extensively \cite{eldar2010block, yuan2006group}. However, many real-world signals exhibit \emph{tree-structured} sparsity: in wavelet decompositions of natural images, if a fine-scale coefficient is significant, its parent (coarser-scale) coefficient is typically also significant \cite{baraniuk2010model, he2011tree}.
 
 Formally, the coordinates of $\mathbf{x}$ are arranged in a rooted tree $\mathcal{T}$, and the support $S = \mathrm{supp}(\mathbf{x})$ satisfies \emph{tree consistency}: $i \in S \Rightarrow \mathrm{parent}(i) \in S$ for every non-root node. Classical model-based compressed sensing \cite{baraniuk2010model} exploits this via tree-projected gradient descent, but uses no learning. Deep unfolding methods learn iteration parameters but operate elementwise, ignoring tree structure entirely.
 
@@ -49,11 +49,11 @@ We bridge this gap with \textbf{Tree-HyperLISTA}, which integrates tree-structur
 
 \section{Related Work}
 
-\textbf{Deep unfolding for sparse recovery.} LISTA \cite{gregor2010learning} unfolds ISTA iterations into a neural network with learned weight matrices. ALISTA \cite{liu2019alista} reduces parameters by computing weights analytically, learning only per-layer step sizes and thresholds. HyperLISTA \cite{chen2021hyperlista} further reduces to 3 global hyperparameters with adaptive per-layer formulas. All these methods use elementwise thresholding and are unaware of structured sparsity.
+\textbf{Deep unfolding for sparse recovery.} LISTA \cite{gregor2010lista} unfolds ISTA iterations into a neural network with learned weight matrices. ALISTA \cite{liu2019alista} reduces parameters by computing weights analytically, learning only per-layer step sizes and thresholds. HyperLISTA \cite{chen2021hyperlista} further reduces to 3 global hyperparameters with adaptive per-layer formulas. All these methods use elementwise thresholding and are unaware of structured sparsity.
 
 \textbf{Model-based compressed sensing.} Baraniuk et al.\ \cite{baraniuk2010model} introduced model-based CoSaMP and model-based IHT for structured sparsity models including tree sparsity. He and Carin \cite{he2011tree} developed tree-structured sparse Bayesian learning. These methods exploit tree structure but have no learned parameters and converge slowly.
 
-\textbf{Structured deep unfolding.} Recent work has explored block-aware unfolding (Ada-BlockLISTA \cite{fu2021ada}, Struct-HyperLISTA), but tree-aware deep unfolding has not been explored. Our work is the first to combine tree-structured support selection with ultra-lightweight deep unfolding.
+\textbf{Structured deep unfolding.} Recent work has explored block-aware unfolding (Ada-BlockLISTA \cite{fu2021adablocklista}, Struct-HyperLISTA), but tree-aware deep unfolding has not been explored. Our work is the first to combine tree-structured support selection with ultra-lightweight deep unfolding.
 
 \section{Problem Setup}
 
