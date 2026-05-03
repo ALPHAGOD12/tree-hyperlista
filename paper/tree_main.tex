@@ -29,21 +29,21 @@
 \maketitle
 
 \begin{abstract}
-Tree-structured sparsity arises naturally in wavelet decompositions and hierarchical signal representations, where the support of a sparse signal respects a rooted tree topology. Existing recovery methods either use classical iterative algorithms with no learning, or deep unfolding networks with millions of parameters that ignore tree structure. We propose \textbf{Tree-HyperLISTA}, an ultra-lightweight deep unfolding network for tree-sparse recovery that uses only \textbf{3 learned hyperparameters}. Our method replaces elementwise thresholding with a tree-consistent support projection operator that combines bottom-up subtree scoring with greedy tree-consistent support selection and soft-thresholding within the selected support. On synthetic tree-sparse recovery problems ($n{=}255$, $m{=}127$), Tree-HyperLISTA achieves $-29.4$ dB NMSE with perfect support recall, outperforming elementwise HyperLISTA ($-14.1$ dB, 3 params) by over 15 dB and LISTA ($-15.4$ dB, 1.56M params) by 14 dB. Our results demonstrate that the ``minimal parameterization'' principle extends from block sparsity to hierarchical tree sparsity: strong structural inductive bias in the proximal operator eliminates the need for heavy parameterization.
+Tree-structured sparsity arises naturally in wavelet decompositions and hierarchical signal representations, where the support of a sparse signal respects a rooted tree topology. Existing recovery methods either use classical iterative algorithms with no learning, or deep unfolding networks with millions of parameters that ignore tree structure. We propose \textbf{Tree-HyperLISTA}, an ultra-lightweight deep unfolding network for tree-sparse recovery that uses only \textbf{3 learned hyperparameters}. Our method replaces elementwise thresholding with a tree-consistent support projection operator that combines bottom-up subtree scoring with greedy tree-consistent support selection and soft-thresholding within the selected support. On synthetic tree-sparse recovery problems ($n{=}255$, $m{=}127$), Tree-HyperLISTA achieves $-28.66$ dB NMSE with perfect support recall, outperforming elementwise HyperLISTA ($-15.9$ dB, 3 params) by 12.8 dB and LISTA ($-13.2$ dB, 1.56M params) by 15.5 dB. Our results demonstrate that the ``minimal parameterization'' principle extends from elementwise sparsity to hierarchical tree sparsity: strong structural inductive bias in the proximal operator eliminates the need for heavy parameterization.
 \end{abstract}
 
 \section{Introduction}
 
 Sparse recovery---reconstructing a high-dimensional signal $\mathbf{x} \in \mathbb{R}^n$ from compressed measurements $\mathbf{y} = \mathbf{A}\mathbf{x} + \boldsymbol{\varepsilon}$---is a foundational problem in compressed sensing \cite{candes2006rip, donoho2006compressed}. Classical methods like ISTA and FISTA solve this via iterative proximal gradient descent, while deep unfolding approaches (LISTA \cite{gregor2010lista}, ALISTA \cite{liu2019alista}, HyperLISTA \cite{chen2021hyperlista}) learn parameters of the unfolded iterations to accelerate convergence.
 
-A key insight from recent work is that structured sparsity models---where the support of $\mathbf{x}$ obeys geometric constraints---can be exploited to dramatically improve recovery. Block sparsity, where nonzero coefficients cluster in contiguous groups, has been studied extensively \cite{eldar2010block, yuan2006group}. However, many real-world signals exhibit \emph{tree-structured} sparsity: in wavelet decompositions of natural images, if a fine-scale coefficient is significant, its parent (coarser-scale) coefficient is typically also significant \cite{baraniuk2010model, he2011tree}.
+A key insight from recent work is that structured sparsity models---where the support of $\mathbf{x}$ obeys geometric constraints---can be exploited to dramatically improve recovery. While standard sparse recovery treats each coefficient independently, many real-world signals exhibit \emph{tree-structured} sparsity: in wavelet decompositions of natural images, if a fine-scale coefficient is significant, its parent (coarser-scale) coefficient is typically also significant \cite{baraniuk2010model, he2011tree}.
 
 Formally, the coordinates of $\mathbf{x}$ are arranged in a rooted tree $\mathcal{T}$, and the support $S = \mathrm{supp}(\mathbf{x})$ satisfies \emph{tree consistency}: $i \in S \Rightarrow \mathrm{parent}(i) \in S$ for every non-root node. Classical model-based compressed sensing \cite{baraniuk2010model} exploits this via tree-projected gradient descent, but uses no learning. Deep unfolding methods learn iteration parameters but operate elementwise, ignoring tree structure entirely.
 
 We bridge this gap with \textbf{Tree-HyperLISTA}, which integrates tree-structured support selection into an ultra-lightweight deep unfolding backbone with only 3 global hyperparameters ($c_1, c_2, c_3$). Our contributions are:
 \begin{itemize}
     \item A novel \emph{tree-consistent support projection operator} $\mathcal{T}_{\theta,K}$ that combines subtree-aware scoring, greedy top-$K$ tree-consistent support selection, and soft-thresholding within the selected support.
-    \item Demonstration that 3 hyperparameters suffice for tree-sparse recovery, extending the minimal parameterization principle from block sparsity to hierarchical sparsity.
+    \item Demonstration that 3 hyperparameters suffice for tree-sparse recovery, extending the minimal parameterization principle from elementwise sparsity to hierarchical sparsity.
     \item Comprehensive experiments showing Tree-HyperLISTA outperforms all baselines by 14--24 dB NMSE with perfect support recall and only 3 parameters.
 \end{itemize}
 
@@ -53,7 +53,7 @@ We bridge this gap with \textbf{Tree-HyperLISTA}, which integrates tree-structur
 
 \textbf{Model-based compressed sensing.} Baraniuk et al.\ \cite{baraniuk2010model} introduced model-based CoSaMP and model-based IHT for structured sparsity models including tree sparsity. He and Carin \cite{he2011tree} developed tree-structured sparse Bayesian learning. These methods exploit tree structure but have no learned parameters and converge slowly.
 
-\textbf{Structured deep unfolding.} Recent work has explored block-aware unfolding (Ada-BlockLISTA \cite{fu2021adablocklista}, Struct-HyperLISTA), but tree-aware deep unfolding has not been explored. Our work is the first to combine tree-structured support selection with ultra-lightweight deep unfolding.
+\textbf{Structured deep unfolding.} While deep unfolding methods have achieved strong results for elementwise sparse recovery, tree-aware deep unfolding has not been explored. Our work is the first to combine tree-structured support selection with ultra-lightweight deep unfolding.
 
 \section{Problem Setup}
 
@@ -249,7 +249,7 @@ A random Gaussian sensing matrix $\mathbf{A} \in \mathbb{R}^{m \times 1024}$ is 
 
 \begin{table}[t]
 \centering
-\caption{Wavelet-domain image CS results (PSNR dB / SSIM) on 8 test images. Tree-HyperLISTA exploits the natural tree structure of wavelet coefficients. TH = Tree-HyperLISTA, SH = Struct-HyperLISTA (block).}
+\caption{Wavelet-domain image CS results (PSNR dB / SSIM) on 8 test images. Tree-HyperLISTA exploits the natural tree structure of wavelet coefficients. TH = Tree-HyperLISTA.}
 \label{tab:tree_imagecs}
 \small
 \begin{tabular}{lcccccc}
@@ -267,9 +267,6 @@ Group-FISTA   & 13.16 & 0.499 & 17.05 & 0.643 & 25.72 & 0.854 \\
 ALISTA (32p)      & 13.98 & 0.506 & 21.03 & 0.713 & 35.18 & 0.965 \\
 HyperLISTA (3p)   & 11.91 & 0.697 & 13.69 & 0.727 & 21.56 & 0.856 \\
 \midrule
-\multicolumn{7}{l}{\emph{Block-aware (Struct-HyperLISTA)}} \\
-SH-topk (3p)      & 12.80 & 0.608 & 18.43 & 0.744 & 24.67 & 0.666 \\
-\midrule
 \multicolumn{7}{l}{\emph{Tree-aware (proposed)}} \\
 TH-hard (3p)      & 8.15  & 0.277 & 19.03 & 0.774 & 31.58 & 0.932 \\
 \textbf{TH-hybrid (3p)} & \textbf{13.10} & \textbf{0.707} & \textbf{20.23} & \textbf{0.834} & \textbf{31.66} & \textbf{0.952} \\
@@ -277,7 +274,7 @@ TH-hard (3p)      & 8.15  & 0.277 & 19.03 & 0.774 & 31.58 & 0.932 \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:tree_imagecs} shows the image CS results. TH-hybrid (3 params) achieves the \textbf{best SSIM at all three CS ratios} (0.707, 0.834, 0.952) and the best PSNR among all lightweight structured methods ($\leq$3 params). At 50\%, TH-hybrid reaches $31.66$ dB, surpassing all classical and structured baselines and approaching ALISTA (35.18 dB, 32 params) while using $10\times$ fewer parameters. The block-aware SH-topk (3 params) underperforms TH-hybrid at every ratio, directly confirming that tree structure provides additional discriminative benefit over block structure for wavelet-domain signals where parent-child coefficient dependencies are meaningful.
+Table~\ref{tab:tree_imagecs} shows the image CS results. TH-hybrid (3 params) achieves the \textbf{best SSIM at all three CS ratios} (0.707, 0.834, 0.952) and the best PSNR among all 3-parameter methods. At 50\%, TH-hybrid reaches $31.66$ dB / 0.952 SSIM, surpassing all classical baselines and HyperLISTA (21.56 dB) by over 10 dB, and approaching ALISTA (35.18 dB, 32 params) while using $10\times$ fewer parameters. The consistent SSIM advantage demonstrates that tree-aware recovery preserves perceptually important structure in wavelet-domain signals.
 
 \begin{figure}[t]
     \centering
@@ -292,7 +289,7 @@ We presented Tree-HyperLISTA, an ultra-lightweight deep unfolding network for tr
 
 \begin{enumerate}
     \item \textbf{Structural inductive bias dominates parameterization.} Tree-HyperLISTA (3 params) outperforms LISTA (1.56M params) by \textbf{15.5 dB}, demonstrating that the right proximal operator is far more important than the number of learned parameters.
-    \item \textbf{The minimal parameterization principle generalizes.} Prior work showed 3 parameters suffice for elementwise and block-sparse recovery. We extend this to tree-structured sparsity, suggesting a broader phenomenon for structured sparse models.
+    \item \textbf{The minimal parameterization principle generalizes.} Prior work showed 3 parameters suffice for elementwise sparse recovery (HyperLISTA). We extend this to tree-structured sparsity, suggesting a broader phenomenon: strong structural inductive bias in the proximal operator eliminates the need for heavy parameterization.
     \item \textbf{Hard tree projection is surprisingly effective.} The simple greedy top-$K$ tree projection (M1) nearly matches the hybrid mode (M3) ($-28.80$ vs.\ $-28.66$ dB), indicating that tree-consistent support selection is the key ingredient.
 \end{enumerate}
 
