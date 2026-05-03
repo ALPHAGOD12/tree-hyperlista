@@ -106,13 +106,19 @@ The structured operator $\mathcal{T}_{\theta_k, K_k}(\mathbf{u}^{(k)})$ is:
 
 \subsection{Ultra-Lightweight Parameterization}
 
-All per-layer quantities are derived from 3 global hyperparameters $(c_1, c_2, c_3)$:
+Following HyperLISTA \cite{chen2021hyperlista}, we derive all per-layer quantities adaptively from just 3 global hyperparameters $(c_1, c_2, c_3)$ that are \emph{shared across all layers and all input instances}. In the original HyperLISTA, these control the elementwise soft-thresholding threshold, Nesterov momentum coefficient, and support size respectively. We adapt and extend them for tree-structured recovery.
+
+\textbf{How $c_1$, $c_2$, $c_3$ enter the computation.} At each layer $k$, the three per-layer quantities $\theta_k$ (threshold), $\beta_k$ (momentum), and $K_k$ (tree support budget) are computed as deterministic functions of $(c_1, c_2, c_3)$ and the current iterate $\mathbf{x}^{(k)}$:
 \begin{align}
-    \theta_k &= |c_1| \cdot \frac{\|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1}{\|\mathbf{A}^\dagger \mathbf{y}\|_1} & \text{(threshold)} \label{eq:theta}\\
-    \beta_k &= \sigma(c_2) \cdot \frac{|\mathrm{supp}(\mathbf{x}^{(k)})|}{n} & \text{(momentum)} \label{eq:beta}\\
-    K_k &= |c_3| \cdot n \cdot \max\!\big(\sigma(\log(r_k) - 1),\, \tfrac{k+1}{K}\big) & \text{(support size)} \label{eq:Kk}
+    \theta_k &= |c_1| \cdot \underbrace{\frac{\|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1}{\|\mathbf{A}^\dagger \mathbf{y}\|_1}}_{\text{normalized residual ratio}} & \text{(threshold)} \label{eq:theta}\\[4pt]
+    \beta_k &= \sigma(c_2) \cdot \underbrace{\frac{|\mathrm{supp}(\mathbf{x}^{(k)})|}{n}}_{\text{active fraction}} & \text{(momentum)} \label{eq:beta}\\[4pt]
+    K_k &= |c_3| \cdot n \cdot \max\!\big(\underbrace{\sigma(\log(r_k) - 1)}_{\text{signal-to-residual estimate}},\, \underbrace{\tfrac{k+1}{K}}_{\text{layer progress}}\big) & \text{(support size)} \label{eq:Kk}
 \end{align}
-where $r_k = \|\mathbf{A}^\dagger \mathbf{y}\|_1 / \|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1$ and $\sigma(\cdot)$ is the sigmoid function. The tree score decay $\rho$ is fixed (not learned).
+where $r_k = \|\mathbf{A}^\dagger \mathbf{y}\|_1 / \|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1$ is the signal-to-residual ratio, $\sigma(\cdot)$ is the sigmoid function, and $\mathbf{A}^\dagger$ is the pseudoinverse (precomputed once). The tree score decay $\rho = 0.5$ is fixed (not learned).
+
+\textbf{Intuition.} $c_1$ scales how aggressively small coefficients are zeroed out---it decreases as the residual shrinks (the model is more confident). $c_2$ controls how much momentum is used, bounded by the sigmoid to $[0,1)$ and further modulated by the fraction of active nodes. $c_3$ controls how many tree nodes are selected into the support, growing as the signal estimate improves across layers.
+
+\textbf{How $(c_1, c_2, c_3)$ are tuned.} Since there are only 3 scalar values, backpropagation through $K$ unrolled layers is unnecessary. Following \cite{chen2021hyperlista}, we use Bayesian optimization (80 Optuna TPE trials) on a validation set, minimizing NMSE. The search ranges are $c_1 \in [0.01, 10]$ (log-scale), $c_2 \in [-8, 3]$ (linear), $c_3 \in [0.05, 10]$ (log-scale). This takes $<2$ seconds on CPU. Once tuned, the same $(c_1, c_2, c_3)$ are used for all test instances.
 
 \begin{algorithm}[t]
 \caption{Tree-HyperLISTA (Hybrid Mode)}
