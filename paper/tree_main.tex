@@ -80,13 +80,13 @@ where $\mathbf{W}$ is a precomputed symmetric weight matrix (not learned) and $\
 
 Instead of treating coefficients independently, we compute a subtree-aware score for each node that aggregates information from its descendants. The score for node $i$ at layer $k$ is:
 \begin{equation}
-    s_i^{(k)} = |u_i^{(k)}| + \sum_{j \in \mathrm{desc}(i)} \rho^{\,\mathrm{depth}(j) - \mathrm{depth}(i)} \cdot |u_j^{(k)}| \label{eq:score}
+    s_i^{(k)} = |u_i^{(k)}| + \sum_{j \in \mathrm{desc}(i)} \rho^{\,d(i,j)} \cdot |u_j^{(k)}| \label{eq:score}
 \end{equation}
-where $\rho \in (0,1)$ is a fixed decay weight (we use $\rho = 0.5$) and $\mathrm{desc}(i)$ denotes all descendants of $i$ in $\mathcal{T}$. The exponent $\mathrm{depth}(j) - \mathrm{depth}(i)$ is simply the distance from node $i$ to descendant $j$ in the tree: children get weight $\rho$, grandchildren $\rho^2$, and so on. This is computed efficiently via bottom-up aggregation in $O(n)$ time using the equivalent recursive form:
+where $d(i,j) = \mathrm{depth}(j) - \mathrm{depth}(i)$ is the distance from node $i$ to descendant $j$ in the tree, and $\rho \in (0,1)$ is a fixed decay weight (we use $\rho = 0.5$). Children ($d{=}1$) get weight $\rho$, grandchildren ($d{=}2$) get $\rho^2$, and so on. This is computed efficiently in $O(n)$ time via bottom-up aggregation using the equivalent recursive form:
 \begin{equation}
-    s_i = |u_i| + \rho \sum_{j \in \mathrm{child}(i)} s_j \label{eq:score_recursive}
+    s_i = |u_i| + \rho \!\!\sum_{j \in \mathrm{children}(i)} \!\!s_j \label{eq:score_recursive}
 \end{equation}
-Processing nodes from leaves to root, each node accumulates its children's already-computed scores, so the entire tree is scored in a single pass. The decay $\rho$ controls how far the operator ``looks ahead'': at $\rho = 0.5$, a child contributes half as much as the node itself, a grandchild one-quarter, etc. This enables the support selection (next step) to prefer nodes whose entire subtree is active, naturally respecting the tree-consistency constraint.
+Processing nodes from leaves to root, each node accumulates its children's already-computed scores in a single pass. The decay $\rho$ controls how far the operator ``looks ahead'': at $\rho = 0.5$, a child contributes half the weight of the node itself, a grandchild one-quarter, etc. This enables the support selection to prefer subtrees that are active \emph{as a whole}, naturally respecting tree consistency.
 
 \subsection{Tree-Consistent Support Selection}
 
@@ -114,13 +114,16 @@ Following HyperLISTA \cite{chen2021hyperlista}, we derive all per-layer quantiti
 
 \textbf{How $c_1$, $c_2$, $c_3$ enter the computation.} At each layer $k$, the three per-layer quantities $\theta_k$ (threshold), $\beta_k$ (momentum), and $K_k$ (tree support budget) are computed as deterministic functions of $(c_1, c_2, c_3)$ and the current iterate $\mathbf{x}^{(k)}$:
 \begin{align}
-    \theta_k &= |c_1| \cdot \underbrace{\frac{\|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1}{\|\mathbf{A}^\dagger \mathbf{y}\|_1}}_{\text{normalized residual ratio}} & \text{(threshold)} \label{eq:theta}\\[4pt]
-    \beta_k &= \sigma(c_2) \cdot \underbrace{\frac{|\mathrm{supp}(\mathbf{x}^{(k)})|}{n}}_{\text{active fraction}} & \text{(momentum)} \label{eq:beta}\\[4pt]
-    K_k &= |c_3| \cdot n \cdot \max\!\big(\underbrace{\sigma(\log(r_k) - 1)}_{\text{signal-to-residual estimate}},\, \underbrace{\tfrac{k+1}{K}}_{\text{layer progress}}\big) & \text{(support size)} \label{eq:Kk}
+    \theta_k &= |c_1| \cdot \frac{\|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1}{\|\mathbf{A}^\dagger \mathbf{y}\|_1} \label{eq:theta}\\[6pt]
+    \beta_k &= \sigma(c_2) \cdot \frac{|\mathrm{supp}(\mathbf{x}^{(k)})|}{n} \label{eq:beta}\\[6pt]
+    K_k &= |c_3| \cdot n \cdot \max\!\Big(\sigma\!\big(\log(r_k) - 1\big),\;\tfrac{k+1}{K}\Big) \label{eq:Kk}
 \end{align}
-where $r_k = \|\mathbf{A}^\dagger \mathbf{y}\|_1 / \|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1$ is the signal-to-residual ratio, $\sigma(\cdot)$ is the sigmoid function, and $\mathbf{A}^\dagger$ is the pseudoinverse (precomputed once). The tree score decay $\rho = 0.5$ is fixed (not learned).
-
-\textbf{Intuition.} $c_1$ scales how aggressively small coefficients are zeroed out---it decreases as the residual shrinks (the model is more confident). $c_2$ controls how much momentum is used, bounded by the sigmoid to $[0,1)$ and further modulated by the fraction of active nodes. $c_3$ controls how many tree nodes are selected into the support, growing as the signal estimate improves across layers.
+where $r_k = \|\mathbf{A}^\dagger \mathbf{y}\|_1 \big/ \|\mathbf{A}^\dagger(\mathbf{y} - \mathbf{A}\mathbf{x}^{(k)})\|_1$ is the signal-to-residual ratio, $\sigma(\cdot)$ is the sigmoid function, and $\mathbf{A}^\dagger$ is the pseudoinverse (precomputed once). The tree score decay $\rho = 0.5$ is fixed (not learned). The three equations have the following roles:
+\begin{itemize}
+\item \textbf{Threshold} (Eq.~\ref{eq:theta}): $c_1$ scales the ratio of residual energy to total signal energy. As recovery improves, the ratio $\to 0$, so $\theta_k$ shrinks and fewer coefficients are zeroed out.
+\item \textbf{Momentum} (Eq.~\ref{eq:beta}): $c_2$ passes through a sigmoid to bound momentum in $[0,1)$, modulated by the fraction of active nodes. Early layers (few active nodes) use little momentum; later layers use more.
+\item \textbf{Support size} (Eq.~\ref{eq:Kk}): $c_3$ controls how many tree nodes are selected. The $\max$ ensures $K_k$ grows at least linearly with layer index $k$ and also responds to the estimated recovery quality $r_k$.
+\end{itemize}
 
 \textbf{How $(c_1, c_2, c_3)$ are tuned.} Since there are only 3 scalar values, backpropagation through $K$ unrolled layers is unnecessary. Following \cite{chen2021hyperlista}, we use Bayesian optimization (80 Optuna TPE trials) on a validation set, minimizing NMSE. The search ranges are $c_1 \in [0.01, 10]$ (log-scale), $c_2 \in [-8, 3]$ (linear), $c_3 \in [0.05, 10]$ (log-scale). This takes $<2$ seconds on CPU. Once tuned, the same $(c_1, c_2, c_3)$ are used for all test instances.
 
@@ -135,7 +138,7 @@ where $r_k = \|\mathbf{A}^\dagger \mathbf{y}\|_1 / \|\mathbf{A}^\dagger(\mathbf{
     \STATE Compute $\theta_k, \beta_k, K_k$ from $(c_1, c_2, c_3)$ via Eqs.~\eqref{eq:theta}--\eqref{eq:Kk}
     \STATE $\mathbf{z}^{(k)} \leftarrow \mathbf{x}^{(k)} + \beta_k(\mathbf{x}^{(k)} - \mathbf{x}^{(k-1)})$ \hfill (momentum)
     \STATE $\mathbf{u}^{(k)} \leftarrow \mathbf{z}^{(k)} + \mathbf{W}^\top(\mathbf{y} - \mathbf{A}\mathbf{z}^{(k)})$ \hfill (gradient step)
-    \STATE $s_i^{(k)} \leftarrow |u_i^{(k)}| + \rho \sum_{j \in \mathrm{child}(i)} s_j^{(k)}$ \hfill (bottom-up scoring)
+    \STATE $s_i^{(k)} \leftarrow |u_i^{(k)}| + \rho \sum_{j \in \mathrm{children}(i)} s_j^{(k)}$ \hfill (bottom-up scoring, Eq.~\ref{eq:score_recursive})
     \STATE $S^{(k)} \leftarrow \mathrm{TopKTree}(\mathbf{s}^{(k)}, K_k)$ \hfill (tree-consistent support)
     \STATE $\mathbf{x}^{(k+1)} \leftarrow \mathcal{T}_{\theta_k, K_k}(\mathbf{u}^{(k)})$ via Eq.~\eqref{eq:operator} \hfill (tree thresholding)
 \ENDFOR
